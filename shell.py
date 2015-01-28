@@ -21,6 +21,7 @@ def display_help(conn=None, arg=None):
     print HELP_FORMAT("?", "print this help menu")
     print HELP_FORMAT("connect", "connect to other database")
     print HELP_FORMAT("quit", "quit sqlite3 shell")
+    print HELP_FORMAT("tables", "show all tables")
     print
     return conn
 
@@ -44,33 +45,54 @@ def quit_shell(conn=None, arg=None):
     exit(0)
 
 
-def display_row(row):
+def render_column(value, width):
+    """
+    渲染单元格
+    """
+    cell = ('{0:>%s}' % width).format
+    return cell(value)
+
+
+def display_row(row, widths):
     """
     显示一行
     """
     result = ''
-    cell = '|{0:>10}'.format
-    for value in row:
-        result += cell(value)
+    for value, width in zip(row, widths):
+        result += '|' + render_column(value, width)
     result += '|'
     print result
+
+
+def display_division(widths):
+    """
+    显示行分割符
+    """
+    div = ''
+    for width in widths:
+        div += '+' + '-' * width
+    div += '+'
+    print div
 
 
 def display(cursor):
     """
     格式化显示游标结果
     """
-    for idx, row in enumerate(cursor):
-        n = len(row)
-        print '-' * (11 * n + 1)
-        if idx == 0:
-            display_row(row.keys())
-            print '-' * (11 * n + 1)
-        display_row(row)
-    try:
-        print '-' * (11 * n + 1)
-    except UnboundLocalError:
-        pass
+    rows = []
+    lens = []
+    for row in cursor:
+        lens.append(map(len, map(str, row)))
+        rows.append(row)
+        keys = row.keys()
+    lens.append(map(len, keys))
+    widths = map(max, zip(*lens))
+    display_division(widths)
+    display_row(keys, widths)
+    for row in rows:
+        display_division(widths)
+        display_row(row, widths)
+    display_division(widths)
 
 
 def execute_sql(conn, sql):
@@ -90,11 +112,30 @@ def execute_sql(conn, sql):
     return conn
 
 
+def tables(conn, arg=None):
+    """
+    显示所有表
+    """
+    sql = "select distinct tbl_name as [table_name] from sqlite_master;"
+    execute_sql(conn, sql)
+    return conn
+
+
+def desc(conn, table_name):
+    """
+    显示表结构
+    """
+    sql = "select sql from sqlite_master where name='%s'" % table_name
+    execute_sql(conn, sql)
+    return conn
+
 COMMANDS = {
     "?": display_help,
     "connect": connect,
     "quit": quit_shell,
     "default": execute_sql,
+    "tables": tables,
+    "desc": desc,
 }
 
 
