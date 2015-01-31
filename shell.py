@@ -9,6 +9,7 @@ sqlite3 的 shell 工具
 
 import sqlite3
 import sys
+import re
 
 HELP_FORMAT = "{0:<10}\t{1}".format
 
@@ -121,12 +122,36 @@ def tables(conn, arg=None):
     return conn
 
 
+class FakeRow(object):
+    def __init__(self, keys, row):
+        self._keys = keys
+        self.row = row
+
+    def __iter__(self):
+        for value in self.row:
+            yield value
+
+    def keys(self):
+        return self._keys
+
 def desc(conn, table_name):
     """
     显示表结构
     """
     sql = "select sql from sqlite_master where name='%s'" % table_name
-    execute_sql(conn, sql)
+    pattern = re.compile(r'\((.*)\)')
+    cur = conn.execute(sql)
+    ddl = cur.fetchone()[0]
+    fields = pattern.search(ddl).group(1)
+
+    values = fields.split(',')
+    fields = ['field', 'type']
+    frs = []
+    for value in values:
+        cells = value.strip().split(' ', 1)
+        frs.append(FakeRow(fields, cells))
+
+    display(frs)
     return conn
 
 COMMANDS = {
