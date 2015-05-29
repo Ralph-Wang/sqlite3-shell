@@ -82,6 +82,7 @@ def display(cursor):
     """
     rows = []
     lens = []
+    keys = []
     for row in cursor:
         lens.append(map(len, map(str, row)))
         rows.append(row)
