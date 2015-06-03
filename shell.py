@@ -10,6 +10,7 @@ sqlite3 的 shell 工具
 import sqlite3
 import sys
 import re
+import readline
 
 HELP_FORMAT = "{0:<10}\t{1}".format
 
